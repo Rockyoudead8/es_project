@@ -1,0 +1,97 @@
+{
+  "seed": 42,
+  "world": "forest",
+  "terrain_size": 240.0,
+  "targets": [
+    {
+      "id": 0,
+      "model": "person_camo_stand",
+      "cls": "person",
+      "x": -32.85,
+      "y": 64.91,
+      "z": 7.61,
+      "yaw": 5.727043015613413,
+      "camouflaged": true
+    },
+    {
+      "id": 1,
+      "model": "person_camo_crouch",
+      "cls": "person",
+      "x": -6.76,
+      "y": 49.1,
+      "z": 5.79,
+      "yaw": 5.242715233995103,
+      "camouflaged": true
+    },
+    {
+      "id": 2,
+      "model": "person_ghillie_prone",
+      "cls": "person",
+      "x": -18.39,
+      "y": -65.56,
+      "z": 6.35,
+      "yaw": 2.662747522609582,
+      "camouflaged": true
+    },
+    {
+      "id": 3,
+      "model": "person_plain_stand",
+      "cls": "person",
+      "x": -42.54,
+      "y": 50.89,
+      "z": 8.67,
+      "yaw": 2.508390361284504,
+      "camouflaged": false
+    },
+    {
+      "id": 4,
+      "model": "person_plain_prone",
+      "cls": "person",
+      "x": 45.27,
+      "y": -14.47,
+      "z": 4.42,
+      "yaw": 4.640002071313821,
+      "camouflaged": false
+    },
+    {
+      "id": 5,
+      "model": "tent_camo",
+      "cls": "tent",
+      "x": 26.8,
+      "y": -62.69,
+      "z": 7.67,
+      "yaw": 0.5539765539877117,
+      "camouflaged": true
+    },
+    {
+      "id": 6,
+      "model": "jeep_camo_net",
+      "cls": "jeep",
+      "x": 27.04,
+      "y": 14.51,
+      "z": 6.99,
+      "yaw": 2.120865617721096,
+      "camouflaged": true
+    },
+    {
+      "id": 7,
+      "model": "deer",
+      "cls": "deer",
+      "x": -63.93,
+      "y": -33.42,
+      "z": 2.93,
+      "yaw": 3.4051486033986853,
+      "camouflaged": false
+    },
+    {
+      "id": 8,
+      "model": "bear",
+      "cls": "bear",
+      "x": 13.62,
+      "y": -34.87,
+      "z": 5.52,
+      "yaw": 5.8604203868594915,
+      "camouflaged": false
+    }
+  ]
+}
