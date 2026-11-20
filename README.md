@@ -93,18 +93,23 @@ A re-run of the training on an RTX 2050 laptop (60 epochs, 26 minutes) reached m
 | Linux | Ubuntu 24.04 in WSL2 |
 | Simulator / robotics | Gazebo Harmonic, ROS 2 Jazzy (`ros-jazzy-desktop`, `ros-jazzy-ros-gz`) |
 | Python | 3.12, PyTorch (CUDA build), Ultralytics YOLOv8, OpenCV, NumPy < 2, SciPy, Pillow |
-| GPU | NVIDIA GPU recommended (tested on an RTX 2050, 4 GB). The forest is about 4.7 M triangles |
+| GPU | NVIDIA GPU recommended (tested on an RTX 2050, 4 GB; also runs on an RTX 3050, 6 GB, with the lighter world below). The forest is about 4.7 M triangles |
 | Disk | About 20 GB for the Linux install plus about 1 GB for generated data |
 | RAM | 16 GB recommended |
 
 ## Setup
 
-> **Path note.** The scripts expect the project at `/mnt/c/Pdhai/Es-proj` (that is `C:\ES-proj\camo_ws` on Windows).
-> If your folder has a different name, make a Windows junction so no code needs changing:
-> `cmd /c mklink /J C:\ES-proj\camo_ws C:\path\to\this\project`
+> **Path note.** The scripts expect the project at `C:\Pdhai\Es-proj` (that is `/mnt/c/Pdhai/Es-proj` inside WSL).
+> If you keep it somewhere else, replace that path in `env.sh`, `run_demo.bat` and the `scripts/*.sh` files
+> (`grep -rl "/mnt/c/Pdhai/Es-proj" . | xargs sed -i 's#/mnt/c/Pdhai/Es-proj#/mnt/c/your/path#g'`).
+> `run_demo.bat` starts the default WSL distro named `Ubuntu`; edit its `-d` option if yours is named differently.
+>
+> **Tested setup for this version:** Windows 11, WSL2 (Ubuntu 24.04), NVIDIA RTX 3050 6 GB laptop GPU.
 
-1. **Install WSL2 + Ubuntu 24.04** (PowerShell): `wsl --install -d Ubuntu-24.04`, then create a user.
+1. **Install WSL2 + Ubuntu 24.04** (PowerShell): `wsl --install -d Ubuntu`, then create a user.
 2. **Install ROS 2 + Gazebo** (inside Ubuntu): `bash scripts/00_install.sh`
+   (it uses `sudo`; if your user has no sudo password set up, run it as root with `wsl -u root bash scripts/00_install.sh`).
+   This is a large download (about 1,600 packages) and takes a while.
 3. **Install the ML stack** (PyTorch + YOLO in `~/camo_venv`): `bash scripts/01_setup_ml.sh`
 4. **Build the ROS package:** `bash scripts/02_build.sh` (build output goes to `~/camo_build` and `~/camo_install`)
 5. **Get the assets** (CC0 textures and models from Poly Haven): `python3 scripts/fetch_assets.py`
@@ -141,12 +146,27 @@ bash scripts/06_compare.sh 42               # YOLO then baseline, both reports p
 Launch file options (`ros2 launch camo_ros demo.launch.py ...`): `mode:=yolo|baseline`, `gui:=true|false`,
 `rviz:=true|false`, `detector`, `viewer`, `autostart`, `conf:=0.35`.
 
-To stop everything: `wsl --terminate Ubuntu-24.04`.
+To stop everything: `wsl --terminate Ubuntu` (or `wsl --shutdown`). Run only one demo at a time; overlapping runs
+slow the machine down a lot.
 
 ## The forest world
 
-`python3 scripts/gen_forest.py [--seed N] [--targets K]` (about 50 s) writes the terrain, vegetation tiles, target models,
-`worlds/forest.sdf`, `worlds/targets.json` (ground truth) and `worlds/world_info.json`.
+`python3 scripts/gen_forest.py [--seed N] [--targets K] [--tree-spacing S] [--grass-step G]` (about 50 s) writes the
+terrain, vegetation tiles, target models, `worlds/forest.sdf`, `worlds/targets.json` (ground truth) and
+`worlds/world_info.json`.
+
+**Lighter world for smaller GPUs.** `--tree-spacing` (default 5.2) and `--grass-step` (default 0.7) control vegetation
+density; larger values give fewer trees and less grass. On the RTX 3050 laptop the demo runs more smoothly with:
+
+```
+python3 scripts/gen_forest.py --seed 42 --tree-spacing 8 --grass-step 1.4
+```
+
+This gives about 757 trees and 10,700 grass clumps instead of about 1,800 trees and 40,000 clumps, with the same
+terrain and the same target positions for the same seed. If it is still slow, try `--tree-spacing 12 --grass-step 2`.
+The detector was trained on the dense forest, so detection results on a lighter world can differ a little.
+`run_demo.sh` only regenerates the world when the seed in `worlds/targets.json` differs from the requested seed, so
+a world you generated with these options is kept.
 
 - Vegetation is merged into 30 m tiles that share textures so Gazebo can run near real time.
 - The same seed always reproduces the same forest; different seeds make new training and test worlds.
@@ -205,7 +225,11 @@ assets_src/                      downloaded Poly Haven textures and models (not 
 | Symptom | Fix |
 |---|---|
 | `invalid option` / `$'\r'` errors in scripts | Convert line endings: `sed -i 's/\r$//' scripts/*.sh env.sh` |
-| `/mnt/c/Pdhai/Es-proj: No such file` | Create the `C:\ES-proj\camo_ws` junction (see Setup) |
+| `/mnt/c/Pdhai/Es-proj: No such file` | The project is not at `C:\Pdhai\Es-proj`; fix the paths (see the Setup path note) |
+| `sudo: a password is required` while installing | Run the installer as root: `wsl -u root bash scripts/00_install.sh` |
+| Gazebo crashes at start with a stack trace in `libd3d12` | Rare first-start crash with the GPU driver. Run `wsl --shutdown` and start again. As a fallback set `GALLIUM_DRIVER=llvmpipe` in `env.sh` (software rendering, slow) |
+| Several Gazebo / RViz processes pile up after stopping | Stop with `wsl --shutdown`; `pkill -f` from inside WSL can miss processes renamed to `gz sim server` / `gz sim gui` |
+| Git Bash mangles `/mnt/c/...` paths passed to `wsl` | Run those commands from PowerShell or cmd instead |
 | Detector says "weights missing -> falling back to baseline" | Provide or train `runs/camo_yolo/weights/best.pt` |
 | Downloads hang inside WSL | Configure the proxy in WSL; try `mtu 1200` |
 | Gazebo or the demo is slow | Plug in, set Windows to Best performance, set `wsl.exe` and `wslg.exe` to High performance in Settings → Graphics, close RViz and other heavy apps, keep the Gazebo window small |
@@ -221,6 +245,10 @@ assets_src/                      downloaded Poly Haven textures and models (not 
   testing on real aerial data, a bigger model and a tracker, adaptive search that circles suspicious spots.
 
 ## Credits and licences
+- **Original project:** the code, world generator, detector pipeline and results were written by Shourya Prajapati and
+  Krishna Mittal (see the commit history). This repository is a copy that was set up and adapted on a different
+  machine; the changes in this version are the path updates, the `--tree-spacing` / `--grass-step` density options,
+  and the setup and troubleshooting notes above.
 - Ground, bark, grass, fern, shrub and rock assets: [Poly Haven](https://polyhaven.com), **CC0**.
 - Detection model: [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) (AGPL-3.0; check its terms before any
   commercial use).
