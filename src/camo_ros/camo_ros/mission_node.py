@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Mission controller: lawnmower search -> confirm -> geolocate -> report.
 
-sub : /camo/odom (Odometry), /camo/detections (Detection2DArray)
+sub : /camo/odom (Odometry), /camo/detections (Detection2DArray),
+      /camo/manual_cmd (Twist, body frame, from the viewer's keyboard teleop),
+      /camo/mode_cmd (String: manual | auto | start | rtl)
 pub : /camo/cmd_vel (Twist, body frame), /camo/status (String),
       /camo/found_markers (MarkerArray, for RViz), /camo/path (Path)
 """
@@ -30,10 +32,17 @@ class MissionNode(Node):
         P("dedupe_radius", 5.0)
         P("match_radius", 6.0)        # for scoring vs ground truth
         P("autostart", True)
+        P("manual_timeout", 1.0)      # s without a /camo/manual_cmd message -> drone hovers (dead-man switch)
+        P("manual_min_agl", 2.0)      # m, manual flight never descends below this height above ground
+        P("manual_bound", 110.0)      # m, manual flight cannot leave the +-bound square (terrain is 240 m wide)
         g = lambda k: self.get_parameter(k).value
         self.alt, self.speed, self.spacing, self.area = g("altitude_agl"), g("speed"), g("lane_spacing"), g("area")
         self.min_conf, self.confirm_n = g("min_conf"), g("confirm_frames")
         self.dedupe_r, self.match_r = g("dedupe_radius"), g("match_radius")
+        self.man_timeout, self.man_min_agl, self.man_bound = g("manual_timeout"), g("manual_min_agl"), g("manual_bound")
+        self.manual_v = np.zeros(4)        # vx, vy, vz, wz (body frame)
+        self.manual_t = 0.0                # time of last manual command
+        self.prev_state = None             # state to resume when leaving MANUAL
         self.terrain = TerrainSampler()
         self.pos, self.yaw = None, 0.0
         self.wps = self._lawnmower()
@@ -49,6 +58,8 @@ class MissionNode(Node):
         self.path = Path(); self.path.header.frame_id = "world"
         self.create_subscription(Odometry, "/camo/odom", self.on_odom, 10)
         self.create_subscription(Detection2DArray, "/camo/detections", self.on_det, 10)
+        self.create_subscription(Twist, "/camo/manual_cmd", self.on_manual_cmd, 10)
+        self.create_subscription(String, "/camo/mode_cmd", self.on_mode, 10)
         self.pub_cmd = self.create_publisher(Twist, "/camo/cmd_vel", 10)
         self.pub_status = self.create_publisher(String, "/camo/status", 10)
         self.pub_mark = self.create_publisher(MarkerArray, "/camo/found_markers", 10)
@@ -85,7 +96,7 @@ class MissionNode(Node):
             self.path.poses.append(ps); self.path.header.stamp = self.get_clock().now().to_msg(); self.pub_path.publish(self.path)
 
     def on_det(self, m):
-        if self.pos is None or self.state not in ("SEARCH", "CONFIRM"):
+        if self.pos is None or self.state not in ("SEARCH", "CONFIRM", "MANUAL"):
             return
         seen = set()
         for d in m.detections:
@@ -117,8 +128,61 @@ class MissionNode(Node):
                  t=time.time() - self.t0)
         self.found.append(f)
         self.get_logger().info(f"*** TARGET #{len(self.found)}: {CLASS_NAMES[f['cls'] % 3]} at ({f['x']:.1f}, {f['y']:.1f}) conf {f['conf']:.2f}")
-        self.state = "CONFIRM"; self.hover_until = time.time() + 1.5
+        if self.state in ("SEARCH", "CONFIRM"):     # in MANUAL the pilot keeps control
+            self.state = "CONFIRM"; self.hover_until = time.time() + 1.5
         self.publish_markers()
+
+    # ------------------------------------------------------------- manual control
+    def on_manual_cmd(self, m):
+        self.manual_v = np.array([m.linear.x, m.linear.y, m.linear.z, m.angular.z], dtype=float)
+        self.manual_t = time.time()
+
+    def on_mode(self, m):
+        c = m.data.strip().lower()
+        if self.pos is None:
+            return
+        if c == "manual":
+            if self.state != "MANUAL":
+                self.prev_state = "SEARCH" if self.state == "CONFIRM" else self.state
+                self.state = "MANUAL"; self.manual_v[:] = 0
+                self.get_logger().info(f"MANUAL control (auto mission paused in {self.prev_state})")
+        elif c == "auto":
+            if self.state == "MANUAL":
+                self.state = self.prev_state or "WAIT"
+                self.manual_v[:] = 0
+                self.get_logger().info(f"AUTO resumed -> {self.state}")
+                if self.state == "WAIT":
+                    self.get_logger().info("mission not started yet: press G to start it")
+        elif c == "start":
+            if self.state == "WAIT" or (self.state == "MANUAL" and self.prev_state == "WAIT"):
+                self.state = "TAKEOFF"; self.get_logger().info("mission started -> TAKEOFF")
+            else:
+                self.get_logger().info(f"start ignored (state {self.state})")
+        elif c == "rtl":
+            if self.state != "DONE" and self.start_xy is not None:
+                self.state = "RTL"; self.get_logger().info("return to launch (operator)")
+        else:
+            self.get_logger().warn(f"unknown mode command '{c}'")
+        self.publish_status()
+
+    def manual_step(self):
+        """Apply the operator's velocity command with safety limits (dead-man timeout, ground floor, area bound)."""
+        vx, vy, vz, wz = self.manual_v if time.time() - self.manual_t < self.man_timeout else (0, 0, 0, 0)
+        x, y, z = self.pos
+        floor = self.terrain.z(x, y) + self.man_min_agl
+        if z <= floor and vz < 0:
+            vz = 0.0
+        if z < floor - 0.3:
+            vz = max(vz, 1.0)                       # pushed below the floor -> climb back
+        c, s_ = math.cos(self.yaw), math.sin(self.yaw)
+        wx, wy = vx * c - vy * s_, vx * s_ + vy * c   # body -> world
+        b = self.man_bound
+        if (x >= b and wx > 0) or (x <= -b and wx < 0):
+            wx = 0.0
+        if (y >= b and wy > 0) or (y <= -b and wy < 0):
+            wy = 0.0
+        vx, vy = wx * c + wy * s_, -wx * s_ + wy * c  # world -> body
+        self.cmd(vx, vy, vz, wz)
 
     # ------------------------------------------------------------- control
     def cmd(self, vx, vy, vz, wz):
@@ -149,6 +213,8 @@ class MissionNode(Node):
             self.cmd(0, 0, max(-2, min(2, 1.0 * (tz - self.pos[2]))), 0)
             if abs(tz - self.pos[2]) < 1.0:
                 self.state = "SEARCH"; self.get_logger().info("airborne -> SEARCH")
+        elif self.state == "MANUAL":
+            self.manual_step()
         elif self.state in ("SEARCH", "CONFIRM"):
             if self.state == "CONFIRM":
                 self.cmd(0, 0, 0, 0)

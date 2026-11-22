@@ -57,8 +57,8 @@ Gazebo (forest.sdf) --ros_gz_bridge--> /camo/camera/image --> detector_node (YOL
 | Node | Job |
 |---|---|
 | `detector_node` | Runs YOLOv8 (or the baseline) on each camera frame; publishes boxes and an annotated image |
-| `mission_node` | State machine: TAKEOFF → SEARCH ⇄ CONFIRM → RTL → DONE; geolocates, confirms and scores targets |
-| `viewer_node` | OpenCV window with the annotated feed and a status bar |
+| `mission_node` | State machine: TAKEOFF → SEARCH ⇄ CONFIRM → RTL → DONE, plus MANUAL (keyboard control); geolocates, confirms and scores targets |
+| `viewer_node` | OpenCV window with the annotated feed and a status bar; keyboard teleop for manual flight |
 | `dataset_node` | Teleports the drone around targets and saves images + YOLO labels (training data only) |
 
 **Geolocation:** the bottom-centre pixel of a box is turned into a ray (pinhole camera, 57° down-tilt, drone heading) and
@@ -131,10 +131,34 @@ Double-click `run_demo.bat`, or from a terminal:
 run_demo.bat                 # YOLO detector, forest seed 42
 run_demo.bat baseline        # classical colour-anomaly detector
 run_demo.bat yolo 7          # YOLO on a different random forest (seed 7)
+run_demo.bat yolo 42 false   # do not auto-start: the drone waits on the pad and you fly it yourself
 ```
 
 It opens Gazebo (chase camera), the "Camouflage Detection – Drone Camera" video window and RViz. The mission takes
 roughly 4 minutes of simulated time; a report prints at the end and is saved to `results/`.
+
+### Flying the drone yourself
+
+Click the **"Camouflage Detection – Drone Camera"** window (it needs keyboard focus) and use these keys (not case-sensitive):
+
+| Key | Action | Key | Action |
+|---|---|---|---|
+| `W` / `S` | forward / back | `A` / `D` | strafe left / right |
+| `R` / `F` | climb / descend | `Q` / `E` | yaw left / right |
+| `Space` | stop and hover | `1` `2` `3` | speed 2 / 5 / 9 m/s |
+| `M` | toggle MANUAL ↔ AUTO | `G` | start the autonomous mission |
+| `H` | autonomous return to launch | `I` | show / hide the key list |
+
+- Any movement key takes over from the autopilot (the status bar shows `MANUAL`). `M` hands control back and the search
+  continues from the waypoint where you took over. Detection and target confirmation keep running while you fly.
+- A key keeps its axis moving until you press the **opposite** key (that cancels it) or `Space`.
+- Safety limits in `mission_node`: the drone hovers if the viewer stops sending commands (`manual_timeout`, 1 s), will not
+  descend below 2 m above the ground (`manual_min_agl`) and cannot leave a ±110 m square (`manual_bound`).
+- With `autostart:=false` (third argument of `run_demo.bat`) the drone sits on the pad: fly it manually, or press `G`
+  for the autonomous search.
+- Any ROS 2 node can fly it too: publish a body-frame `geometry_msgs/Twist` to `/camo/manual_cmd` (10 Hz) and a
+  `std_msgs/String` (`manual`, `auto`, `start`, `rtl`) to `/camo/mode_cmd`.
+- `scripts/test_manual.py` checks this logic without Gazebo (start `mission_node` with `-p autostart:=false` first).
 
 Headless (no windows) run and comparison on the unseen forest:
 
