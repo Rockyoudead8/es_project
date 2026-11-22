@@ -1,6 +1,6 @@
 #!/bin/bash
 # make the Gazebo GUI chase-cam follow the drone (retries until the GUI is up)
-source /mnt/c/Pdhai/Es-proj/env.sh
+source /mnt/c/Users/admin/Desktop/padhai/Es-proj/env.sh
 for i in $(seq 1 30); do
   gz service -s /gui/follow --reqtype gz.msgs.StringMsg --reptype gz.msgs.Boolean --timeout 2000 --req 'data: "camo_drone"' 2>/dev/null | grep -q true && break
   sleep 3

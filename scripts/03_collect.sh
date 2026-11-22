@@ -1,15 +1,15 @@
 #!/bin/bash
 # usage: 03_collect.sh [samples_per_world] [seeds...]   (default 350 per world, seeds 1 2 3)
-source /mnt/c/Pdhai/Es-proj/env.sh
+source /mnt/c/Users/admin/Desktop/padhai/Es-proj/env.sh
 N=${1:-350}; shift
 SEEDS=${@:-1 2 3}
-cd /mnt/c/Pdhai/Es-proj/scripts
+cd /mnt/c/Users/admin/Desktop/padhai/Es-proj/scripts
 for S in $SEEDS; do
   echo "=== world seed $S"
   python3 gen_forest.py --seed $S | tail -1
   WORLD=$(python3 -c "import json;print(json.load(open('../worlds/world_info.json'))['world'])")
   cd /tmp
-  gz sim -s -r --headless-rendering /mnt/c/Pdhai/Es-proj/worlds/$WORLD.sdf > /tmp/gz_collect.log 2>&1 &
+  gz sim -s -r --headless-rendering /mnt/c/Users/admin/Desktop/padhai/Es-proj/worlds/$WORLD.sdf > /tmp/gz_collect.log 2>&1 &
   GZ=$!
   sleep 45
   ros2 run ros_gz_bridge parameter_bridge \
@@ -20,6 +20,6 @@ for S in $SEEDS; do
   sleep 4
   timeout 1800 ros2 run camo_ros dataset_node --ros-args -p n_samples:=$N -p tag:=f$S
   kill $BR $GZ 2>/dev/null; sleep 3; pkill -f "gz sim" 2>/dev/null; sleep 2
-  cd /mnt/c/Pdhai/Es-proj/scripts
+  cd /mnt/c/Users/admin/Desktop/padhai/Es-proj/scripts
 done
 echo COLLECT_DONE

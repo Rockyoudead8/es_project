@@ -53,8 +53,8 @@ class DatasetNode(Node):
         d = alt / math.tan(CAM_PITCH) * random.uniform(0.8, 1.25)
         lat = random.uniform(-4, 4)
         x = tx - d * math.cos(yaw) - lat * math.sin(yaw); y = ty - d * math.sin(yaw) + lat * math.cos(yaw)
-        x, y = max(-100, min(100, x)), max(-100, min(100, y))
-        z = max(self.terrain.z(x + a, y + b) for a in (-6, 0, 6) for b in (-6, 0, 6)) + alt
+        x, y = float(max(-100, min(100, x))), float(max(-100, min(100, y)))   # float(): clamping can return the int 100
+        z = float(max(self.terrain.z(x + a, y + b) for a in (-6, 0, 6) for b in (-6, 0, 6)) + alt)
         req = SetEntityPose.Request()
         req.entity.name = "camo_drone"; req.entity.type = Entity.MODEL
         req.pose.position.x, req.pose.position.y, req.pose.position.z = x, y, z

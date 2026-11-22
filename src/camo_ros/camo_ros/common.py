@@ -5,7 +5,7 @@ from sensor_msgs.msg import Image
 
 CLASS_NAMES = ["person", "vehicle/tent", "animal"]   # YOLO ids 0,1,2  (gz labels 1,2,3)
 
-WS = os.environ.get("CAMO_WS", "/mnt/c/Pdhai/Es-proj")
+WS = os.environ.get("CAMO_WS", "/mnt/c/Users/admin/Desktop/padhai/Es-proj")
 _INFO_P = os.path.join(WS, "worlds", "world_info.json")
 WORLD_INFO = json.load(open(_INFO_P)) if os.path.exists(_INFO_P) else \
     dict(world="savanna", sdf="savanna.sdf", terrain_dir="savanna_terrain", size=240.0, height=14.0)

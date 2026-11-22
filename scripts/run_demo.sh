@@ -1,8 +1,8 @@
 #!/bin/bash
 # usage: run_demo.sh [mode=yolo|baseline] [seed=42] [autostart=true|false]   (autostart=false: sit on the pad, fly by keyboard)
-source /mnt/c/Pdhai/Es-proj/env.sh
+source /mnt/c/Users/admin/Desktop/padhai/Es-proj/env.sh
 MODE=${1:-yolo}; SEED=${2:-42}; AUTO=${3:-true}
-cd /mnt/c/Pdhai/Es-proj/scripts
+cd /mnt/c/Users/admin/Desktop/padhai/Es-proj/scripts
 if [ "$(python3 -c "import json;print(json.load(open('../worlds/targets.json')).get('seed'))" 2>/dev/null)" != "$SEED" ] \
    || [ ! -f ../worlds/forest.sdf ]; then
   python3 gen_forest.py --seed $SEED

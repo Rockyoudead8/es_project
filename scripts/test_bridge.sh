@@ -1,7 +1,7 @@
 #!/bin/bash
-source /mnt/c/Pdhai/Es-proj/env.sh
+source /mnt/c/Users/admin/Desktop/padhai/Es-proj/env.sh
 cd /tmp
-gz sim -s -r --headless-rendering /mnt/c/Pdhai/Es-proj/worlds/savanna.sdf > /tmp/gzsim.log 2>&1 &
+gz sim -s -r --headless-rendering /mnt/c/Users/admin/Desktop/padhai/Es-proj/worlds/savanna.sdf > /tmp/gzsim.log 2>&1 &
 GZ=$!
 sleep 20
 ros2 run ros_gz_bridge parameter_bridge \

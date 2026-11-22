@@ -1,9 +1,9 @@
-# source this: source /mnt/c/Pdhai/Es-proj/env.sh
+# source this: source /mnt/c/Users/admin/Desktop/padhai/Es-proj/env.sh
 source /opt/ros/jazzy/setup.bash
 export LD_LIBRARY_PATH=/usr/lib/wsl/lib:$LD_LIBRARY_PATH
 export GALLIUM_DRIVER=d3d12
 export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
-export CAMO_WS=/mnt/c/Pdhai/Es-proj
+export CAMO_WS=/mnt/c/Users/admin/Desktop/padhai/Es-proj
 export GZ_SIM_RESOURCE_PATH=$CAMO_WS/models:$CAMO_WS/worlds:$GZ_SIM_RESOURCE_PATH
 export QT_QPA_PLATFORM=xcb
 export SDF_PATH=$CAMO_WS/models:$SDF_PATH

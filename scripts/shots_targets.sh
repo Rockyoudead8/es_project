@@ -1,10 +1,10 @@
 #!/bin/bash
 # Close-up renders of a few targets (from worlds/targets.json) into build/shots/tgt_*.png
-cd /mnt/c/Pdhai/Es-proj/scripts
+cd /mnt/c/Users/admin/Desktop/padhai/Es-proj/scripts
 source ../env.sh
 python3 - <<'EOF' > /tmp/tgt_poses.txt
 import json
-for t in json.load(open("/mnt/c/Pdhai/Es-proj/worlds/targets.json"))["targets"]:
+for t in json.load(open("/mnt/c/Users/admin/Desktop/padhai/Es-proj/worlds/targets.json"))["targets"]:
     print(t["model"], t["x"] - 6, t["y"] - 6)
 EOF
 while read name x y; do

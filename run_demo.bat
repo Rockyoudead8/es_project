@@ -6,4 +6,4 @@ set SEED=%2
 if "%SEED%"=="" set SEED=42
 set AUTO=%3
 if "%AUTO%"=="" set AUTO=true
-wsl -d Ubuntu -- bash /mnt/c/Pdhai/Es-proj/scripts/run_demo.sh %MODE% %SEED% %AUTO%
+wsl -d Ubuntu -- bash /mnt/c/Users/admin/Desktop/padhai/Es-proj/scripts/run_demo.sh %MODE% %SEED% %AUTO%

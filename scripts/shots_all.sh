@@ -1,6 +1,6 @@
 #!/bin/bash
 # Render the standard set of preview views of worlds/forest.sdf into build/shots/
-cd /mnt/c/Pdhai/Es-proj/scripts
+cd /mnt/c/Users/admin/Desktop/padhai/Es-proj/scripts
 source ../env.sh
 bash shoot.sh aerial1 -110 -118 40 0.33 0.82 2>&1 | grep -E "saved|NO FRAME"
 bash shoot.sh drone_jeep -50.8 24.9 28 1.0 0 800 600 1.1 2>&1 | grep -E "saved|NO FRAME"

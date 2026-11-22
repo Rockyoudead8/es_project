@@ -6,7 +6,7 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-WS = os.environ.get("CAMO_WS", "/mnt/c/Pdhai/Es-proj")
+WS = os.environ.get("CAMO_WS", "/mnt/c/Users/admin/Desktop/padhai/Es-proj")
 _info_p = os.path.join(WS, "worlds", "world_info.json")
 INFO = json.load(open(_info_p)) if os.path.exists(_info_p) else dict(world="savanna", sdf="savanna.sdf")
 

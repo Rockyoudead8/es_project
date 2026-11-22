@@ -2,7 +2,7 @@
 """Fine-tune YOLOv8n on the Gazebo camouflage dataset."""
 import os, shutil, sys
 from ultralytics import YOLO
-WS = os.environ.get("CAMO_WS", "/mnt/c/Pdhai/Es-proj")
+WS = os.environ.get("CAMO_WS", "/mnt/c/Users/admin/Desktop/padhai/Es-proj")
 LOCAL = os.path.expanduser("~/camo_data")
 epochs = int(sys.argv[1]) if len(sys.argv) > 1 else 60
 if os.path.exists(LOCAL): shutil.rmtree(LOCAL)

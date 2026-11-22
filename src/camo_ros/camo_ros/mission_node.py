@@ -257,6 +257,7 @@ class MissionNode(Node):
     def report(self):
         gt_path = os.path.join(WS, "worlds", "targets.json")
         res = dict(found=self.found, duration_s=time.time() - self.t0, distance_m=self.dist)
+        rows = []   # per-target table, also saved as CSV / Markdown next to the JSON
         if os.path.exists(gt_path):
             gt = json.load(open(gt_path))["targets"]
             used, tp = set(), 0
@@ -270,10 +271,20 @@ class MissionNode(Node):
                 hit = bi is not None and best < self.match_r
                 if hit:
                     used.add(bi); tp += 1
+                    fd = self.found[bi]
+                    rows.append(dict(target=g["model"], true_class=g["cls"], camouflaged=g["camouflaged"], true_x=round(g["x"], 1), true_y=round(g["y"], 1),
+                                     detected="yes", predicted_class=CLASS_NAMES[fd["cls"] % 3], error_m=round(best, 2), confidence=round(fd["conf"], 2)))
+                else:
+                    rows.append(dict(target=g["model"], true_class=g["cls"], camouflaged=g["camouflaged"], true_x=round(g["x"], 1), true_y=round(g["y"], 1),
+                                     detected="no", predicted_class="", error_m="", confidence=""))
                 key = "camouflaged" if g["camouflaged"] else "plain/animal"
                 a = per.setdefault(key, [0, 0]); a[1] += 1; a[0] += int(hit)
                 g["detected"] = hit
             fp = len(self.found) - tp
+            for i, fd in enumerate(self.found):      # confirmed detections that matched no real target
+                if i not in used:
+                    rows.append(dict(target="(false alarm)", true_class="", camouflaged="", true_x=round(fd["x"], 1), true_y=round(fd["y"], 1),
+                                     detected="false alarm", predicted_class=CLASS_NAMES[fd["cls"] % 3], error_m="", confidence=round(fd["conf"], 2)))
             res.update(ground_truth=gt, true_positives=tp, false_positives=fp,
                        recall=tp / max(len(gt), 1), precision=tp / max(len(self.found), 1), per_group=per)
             lines = ["", "=" * 54, " MISSION REPORT", "=" * 54,
@@ -287,7 +298,34 @@ class MissionNode(Node):
         os.makedirs(os.path.join(WS, "results"), exist_ok=True)
         with open(os.path.join(WS, "results", "mission_report.json"), "w") as fh:
             json.dump(res, fh, indent=2)
-        self.pub_status.publish(String(data="DONE | report saved to results/mission_report.json"))
+        self.write_tables(res, rows)
+        self.pub_status.publish(String(data="DONE | report saved to results/ (mission_report.json, mission_results.csv, mission_summary.md)"))
+
+    def write_tables(self, res, rows):
+        """Save the results in table form too: a CSV (opens in Excel) and a Markdown summary. Never breaks the JSON report."""
+        if not rows:
+            return
+        try:
+            import csv
+            out = os.path.join(WS, "results")
+            cols = ["target", "true_class", "camouflaged", "true_x", "true_y", "detected", "predicted_class", "error_m", "confidence"]
+            with open(os.path.join(out, "mission_results.csv"), "w", newline="", encoding="utf-8") as fh:
+                w = csv.DictWriter(fh, fieldnames=cols)
+                w.writeheader(); w.writerows(rows)
+            n = len(rows) - res["false_positives"]
+            md = ["# Mission report", "", "| Metric | Value |", "| --- | --- |",
+                  f"| Targets in world | {n} |", f"| Detected (true positives) | {res['true_positives']} |",
+                  f"| False alarms | {res['false_positives']} |", f"| Recall | {res['recall']:.0%} |",
+                  f"| Precision | {res['precision']:.0%} |"]
+            for k, (h, t) in res["per_group"].items():
+                md.append(f"| {k} found | {h} / {t} |")
+            md += [f"| Flight time | {res['duration_s']:.0f} s |", f"| Distance flown | {res['distance_m']:.0f} m |", "",
+                   "## Per target", "", "| " + " | ".join(cols) + " |", "| " + " | ".join("---" for _ in cols) + " |"]
+            md += ["| " + " | ".join(str(r[c]) for c in cols) + " |" for r in rows]
+            with open(os.path.join(out, "mission_summary.md"), "w", encoding="utf-8") as fh:
+                fh.write("\n".join(md) + "\n")
+        except Exception as e:
+            self.get_logger().warn(f"could not write result tables: {e}")
 
 
 def main():

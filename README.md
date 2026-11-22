@@ -99,9 +99,9 @@ A re-run of the training on an RTX 2050 laptop (60 epochs, 26 minutes) reached m
 
 ## Setup
 
-> **Path note.** The scripts expect the project at `C:\Pdhai\Es-proj` (that is `/mnt/c/Pdhai/Es-proj` inside WSL).
+> **Path note.** The scripts expect the project at `C:\Pdhai\Es-proj` (that is `/mnt/c/Users/admin/Desktop/padhai/Es-proj` inside WSL).
 > If you keep it somewhere else, replace that path in `env.sh`, `run_demo.bat` and the `scripts/*.sh` files
-> (`grep -rl "/mnt/c/Pdhai/Es-proj" . | xargs sed -i 's#/mnt/c/Pdhai/Es-proj#/mnt/c/your/path#g'`).
+> (`grep -rl "/mnt/c/Users/admin/Desktop/padhai/Es-proj" . | xargs sed -i 's#/mnt/c/Users/admin/Desktop/padhai/Es-proj#/mnt/c/your/path#g'`).
 > `run_demo.bat` starts the default WSL distro named `Ubuntu`; edit its `-d` option if yours is named differently.
 >
 > **Tested setup for this version:** Windows 11, WSL2 (Ubuntu 24.04), NVIDIA RTX 3050 6 GB laptop GPU.
@@ -249,7 +249,7 @@ assets_src/                      downloaded Poly Haven textures and models (not 
 | Symptom | Fix |
 |---|---|
 | `invalid option` / `$'\r'` errors in scripts | Convert line endings: `sed -i 's/\r$//' scripts/*.sh env.sh` |
-| `/mnt/c/Pdhai/Es-proj: No such file` | The project is not at `C:\Pdhai\Es-proj`; fix the paths (see the Setup path note) |
+| `/mnt/c/Users/admin/Desktop/padhai/Es-proj: No such file` | The project is not at `C:\Pdhai\Es-proj`; fix the paths (see the Setup path note) |
 | `sudo: a password is required` while installing | Run the installer as root: `wsl -u root bash scripts/00_install.sh` |
 | Gazebo crashes at start with a stack trace in `libd3d12` | Rare first-start crash with the GPU driver. Run `wsl --shutdown` and start again. As a fallback set `GALLIUM_DRIVER=llvmpipe` in `env.sh` (software rendering, slow) |
 | Several Gazebo / RViz processes pile up after stopping | Stop with `wsl --shutdown`; `pkill -f` from inside WSL can miss processes renamed to `gz sim server` / `gz sim gui` |
